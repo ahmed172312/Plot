@@ -1,0 +1,136 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Plot the Random Point</title>
+    <style>
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 40px; }
+        #canvas { border: 1px solid #333; background: #f9f9f9; cursor: crosshair; }
+        #result { margin-top: 20px; font-size: 1.2em; }
+    </style>
+</head>
+<body>
+    <h1>Plot the Random Point</h1>
+    <p>Click on the canvas where you think the random point is located.</p>
+    <canvas id="canvas" width="400" height="400"></canvas>
+    <div id="result"></div>
+    <button id="retryBtn" style="display:none; margin-top:15px;">Try Again</button>
+    <script>
+        const canvas = document.getElementById('canvas');
+        const ctx = canvas.getContext('2d');
+        const resultDiv = document.getElementById('result');
+        const radius = 6;
+        // Coordinate system: -10 to 10 on both axes
+        const minCoord = -10;
+        const maxCoord = 10;
+        const gridSize = maxCoord - minCoord;
+        let guessed = false;
+        let randomX, randomY;
+
+        const retryBtn = document.getElementById('retryBtn');
+
+        // Map coordinate to canvas pixel
+        function coordToPixel(x, y) {
+            const px = ((x - minCoord) / (maxCoord - minCoord)) * canvas.width;
+            const py = canvas.height - ((y - minCoord) / (maxCoord - minCoord)) * canvas.height;
+            return [px, py];
+        }
+
+        // Map pixel to coordinate
+        function pixelToCoord(px, py) {
+            const x = minCoord + (px / canvas.width) * (maxCoord - minCoord);
+            const y = minCoord + ((canvas.height - py) / canvas.height) * (maxCoord - minCoord);
+            return [x, y];
+        }
+
+        // Generate random point in coordinate space
+        function randomCoord() {
+            const x = Math.floor(Math.random() * (maxCoord - minCoord + 1)) + minCoord;
+            const y = Math.floor(Math.random() * (maxCoord - minCoord + 1)) + minCoord;
+            return [x, y];
+        }
+
+        function startNewRound() {
+            [randomX, randomY] = randomCoord();
+            guessed = false;
+            drawGrid();
+            resultDiv.innerHTML = '';
+            retryBtn.style.display = 'none';
+        }
+
+        // Draw grid with axes and numbers
+        function drawGrid() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.strokeStyle = '#eee';
+            ctx.font = '12px Arial';
+            ctx.textAlign = 'center';
+            ctx.textBaseline = 'middle';
+            for (let i = minCoord; i <= maxCoord; i++) {
+                // Vertical lines
+                const [px, ] = coordToPixel(i, 0);
+                ctx.beginPath();
+                ctx.moveTo(px, 0);
+                ctx.lineTo(px, canvas.height);
+                ctx.stroke();
+                if (i !== 0) {
+                    ctx.fillStyle = '#888';
+                    ctx.fillText(i, px, canvas.height / 2 + 18);
+                }
+                // Horizontal lines
+                const [, py] = coordToPixel(0, i);
+                ctx.beginPath();
+                ctx.moveTo(0, py);
+                ctx.lineTo(canvas.width, py);
+                ctx.stroke();
+                if (i !== 0) {
+                    ctx.fillStyle = '#888';
+                    ctx.fillText(i, canvas.width / 2 - 18, py);
+                }
+            }
+            // Draw axes
+            ctx.strokeStyle = '#333';
+            // Y axis
+            ctx.beginPath();
+            ctx.moveTo(canvas.width / 2, 0);
+            ctx.lineTo(canvas.width / 2, canvas.height);
+            ctx.stroke();
+            // X axis
+            ctx.beginPath();
+            ctx.moveTo(0, canvas.height / 2);
+            ctx.lineTo(canvas.width, canvas.height / 2);
+            ctx.stroke();
+        }
+
+        startNewRound();
+
+        canvas.addEventListener('click', function(e) {
+            if (guessed) return;
+            const rect = canvas.getBoundingClientRect();
+            const px = e.clientX - rect.left;
+            const py = e.clientY - rect.top;
+            let [guessX, guessY] = pixelToCoord(px, py);
+            // Snap to nearest integer
+            guessX = Math.round(guessX);
+            guessY = Math.round(guessY);
+            // Draw user's guess at integer coordinate
+            const [guessPx, guessPy] = coordToPixel(guessX, guessY);
+            ctx.beginPath();
+            ctx.arc(guessPx, guessPy, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'blue';
+            ctx.fill();
+            // Show actual point
+            const [actualPx, actualPy] = coordToPixel(randomX, randomY);
+            ctx.beginPath();
+            ctx.arc(actualPx, actualPy, radius, 0, 2 * Math.PI);
+            ctx.fillStyle = 'red';
+            ctx.fill();
+            guessed = true;
+            resultDiv.innerHTML = `Your guess: (${guessX}, ${guessY})<br>Actual point: (${randomX}, ${randomY})`;
+            retryBtn.style.display = 'inline-block';
+        });
+
+        retryBtn.addEventListener('click', startNewRound);
+    </script>
+</body>
+</html>
